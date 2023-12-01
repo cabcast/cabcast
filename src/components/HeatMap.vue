@@ -1,7 +1,28 @@
 <template>
   <div>
-    <div id="map"></div>
-    <LegendBox :labels="labels" />
+    <div id='map'></div>
+    <div class='map-overlay' id='features'>
+      <h4>Demand</h4>
+      <div id='pd'>
+        <p>Hover over a sub-county!</p>
+      </div>
+    </div>
+    <div class='map-overlay' id='dtsel'>
+      <div class="mt-3 text-left">
+        <label for="slider">Hour of day</label>
+        <input type="range" class="form-range custom-slider" id="slider" min="0" max="23" step="1" value="0">
+        <div class="d-flex justify-content-between">
+          <span v-for="hour in hours" :key="hour">{{ hour }}</span>
+        </div>
+      </div>
+      <div class="mt-3 text-left">
+        <label for="date">Date</label>
+        <input type="date" class="form-control" id="date" placeholder="Date for forecast...">
+      </div>
+    </div>
+    <div style="position: absolute; right: 0; top: 350px;">
+      <LegendBox :labels="labels" :colors="colors" />
+    </div>
   </div>
 </template>
 
@@ -12,19 +33,13 @@ export default {
   components: {
     LegendBox
   },
-  methods: {
-    generateLabels(min, max) {
-      const range = max - min;
-      const step = range / 4;
-      const labels = [min, min + step, min + 2 * step, min + 3 * step, max];
-      return labels.map(label => Math.round(label / 2) * 2);
-    }
-  },
   data() {
     return {
       map: null,
       accessToken: 'pk.eyJ1Ijoia2FydGhpYzI1IiwiYSI6ImNsb2tpazRjdTBqNXoya3MyYmx3MWFlZXgifQ.D6Bxvtj4NhZ2U1Pt6kFMug',
-      labels: []
+      labels: [],
+      colors: [],
+      hours: [0, 5, 11, 17, 23]
     }
   },
   mounted() {
@@ -32,77 +47,52 @@ export default {
     this.map = new mapboxgl.Map({
       container: 'map',
       // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/karthic25/clpmyzie900jp01p643bd13ls',
       center: [-87.6, 41.85],
       zoom: 10
     })
 
-    fetch('/Chicago.geojson')
-      .then(response => response.json())
-      .then(data => {
-        const values = data.features.map(feature => feature.properties.cartodb_id);
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        this.labels = this.generateLabels(min, max);
-      });
-
     this.map.on('load', () => {
-      // Add a geojson point source.
-      // Heatmap layers also work with a vector tile source.
-      this.map.addSource('demand', {
-        'type': 'geojson',
-        'data': '/Chicago.geojson'
-      });
+      const layers = [
+        '0',
+        '2',
+        '5',
+        '10',
+        '20',
+        '50',
+        '100+'
+      ];
+      this.labels = layers;
+      const colors = [
+        '#FFEDA0',
+        '#FED976',
+        '#FEB24C',
+        '#FD8D3C',
+        '#FC4E2A',
+        '#E31A1C',
+        '#BD0026',
+      ];
+      function hexToRgb(hex) {
+        let r = parseInt(hex.slice(1, 3), 16);
+        let g = parseInt(hex.slice(3, 5), 16);
+        let b = parseInt(hex.slice(5, 7), 16);
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+      let rgbColors = colors.map(color => hexToRgb(color));
+      this.colors = rgbColors;
 
-      this.map.addLayer(
-        {
-          'id': 'demand-choropleth',
-          'type': 'fill',
-          'source': 'demand',
-          'layout': {},
-          'maxzoom': 9,
-          'paint':{
-      'fill-color': [
-        'interpolate',
-        ['linear'],
-        ['get', 'cartodb_id'],
-        1,
-        '#f1eef6',
-        2,
-        '#bdc9e1',
-        3,
-        '#74a9cf',
-        4,
-        '#2b8cbe',
-        5,
-        '#045a8d'
-      ],
-      'fill-opacity': 0.8
-    } 
-  });
-
-      const popup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false
-      });
-
-      this.map.on('mouseenter', 'demand-choropleth', (e) => {
-        // Change the cursor style as a UI indicator.
+      // update legend
+      this.map.on('mousemove', (event) => {
         this.map.getCanvas().style.cursor = 'pointer';
-
-        // Copy coordinates array.
-        const coordinates = e.features[0].geometry.coordinates[0][0];
-        const description = "<p>" + e.features[0].properties.cartodb_id + "</p>";
-        // const description = "Demand = <b>" + Math.ceil(Math.exp(e.features[0].properties.cartodb_id)) + "</b><br>Latitude = <b>" + Math.round(e.features[0].geometry.coordinates[1] * 100) / 100 + "</b><br>Longitude = <b>" + Math.round(e.features[0].geometry.coordinates[0] * 100) / 100 + "</b>";
-
-        // Populate the popup and set its coordinates
-        // based on the feature found.
-        popup.setLngLat(coordinates).setHTML(description).addTo(this.map);
+        const subcounty = this.map.queryRenderedFeatures(event.point, {
+          layers: ['Chicago']
+        });
+        document.getElementById('pd').innerHTML = subcounty.length
+          ? `<h4>${subcounty[0].properties.name}</h4><p>${subcounty[0].properties.cartodb_id} calls per hour</p>`
+          : `<p>Hover over a sub-county!</p>`;
       });
-
-      this.map.on('mouseleave', 'demand-choropleth', () => {
+      this.map.on('mouseleave', 'Chicago', () => {
         this.map.getCanvas().style.cursor = '';
-        popup.remove();
       });
     });
   }
@@ -110,16 +100,62 @@ export default {
 </script>
 
 <style scoped>
+/**
+* Create a position for the map
+* on the page */
 #map {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 100%;
-  z-index: -1;
 }
 
-.mapboxgl-popup {
-  max-width: 400px;
-  font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+/**
+* Set rules for how the map overlays
+* (information box and legend) will be displayed
+* on the page. */
+.map-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #fff;
+  margin-right: 20px;
+  margin-top: 10px;
+  font-family: Arial, sans-serif;
+  border-radius: 3px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#features {
+  top: 0;
+  margin-top: 20px;
+  width: 250px;
+  padding-bottom: 20px; /* Add some padding to the bottom */
+  height: 100px !important;
+}
+
+#dtsel {
+  top: 115px;
+  margin-top: 20px;
+  width: 250px;
+  padding-bottom: 20px; /* Add some padding to the bottom */
+  height: 200px !important;
+}
+
+.custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: grey;
+  cursor: pointer;
+}
+
+.custom-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: grey;
+  cursor: pointer;
 }
 </style>
