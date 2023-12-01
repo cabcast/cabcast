@@ -16,11 +16,11 @@ The data is displayed on a map using Mapbox GL.
 `npm install`
 
 3. Start the server:
-`npm start`
+`npm run serve`
 
 ## Usage
 
-Open your browser and navigate to `http://localhost:3000` to view the dashboard.
+Open your browser and navigate to `http://localhost:8080` to view the dashboard.
 
 Use the slider to select the hour of the day and the date input to select the date for the forecast. The map will update to display the forecast for the selected hour and date.
 
