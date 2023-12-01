@@ -13,7 +13,7 @@ The data is displayed on a map using Mapbox GL.
 `git clone`
 
 2. Install the dependencies:
-`cd npm install`
+`npm install`
 
 3. Start the server:
 `npm start`
