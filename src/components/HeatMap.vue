@@ -106,8 +106,9 @@ export default {
 #map {
   position: absolute;
   top: 0;
+  left: 50px;
   bottom: 0;
-  width: 100%;
+  width: calc(100% - 50px);
 }
 
 /**

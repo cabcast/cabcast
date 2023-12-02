@@ -1,18 +1,20 @@
 <template>
   <div id="app">
-    <HeatMap />
+    <NavBar />
+    <router-view />
   </div>
 </template>
 
 <script>
-import HeatMap from './components/HeatMap.vue'
+import NavBar from './components/NavBar.vue'
 
 export default {
   name: 'App',
   components: {
-    HeatMap
+    NavBar
   }
 }
+
 </script>
 
 <style>
