@@ -5,7 +5,6 @@
 </template>
 
 <script>
-export default {
-  name: 'PredPlots'
-}
+/* global d3 */
+d3.select(this.$el).append('svg');
 </script>
