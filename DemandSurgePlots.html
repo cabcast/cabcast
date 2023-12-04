@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.32/moment-timezone-with-data.min.js"></script>
+<style>
+    /* Style for the div with margins */
+    .divStyle {
+      margin: 20px; /* Sets margin for all sides */
+      padding: 10px; /* Optional: Adds padding inside the div */
+      border: 1px solid #ccc; /* Optional: Adds a border for visualization */
+    }
+</style>
+<body>
+    <h2 style="color:#002D62; text-align:center">Demand and Surge Multiplier Plots</h2>
+    <div class="divStyle">
+        <p >Please select the Community Name, Date, Hour to get the predicted demand and surge multiplier for the next 24hours</p>
+        <form action="#" method="post" id="form">
+            <label for="community">Community:</label>
+            <select id="community" name="community">
+            </select><br><br>
+            <label for="Date">Date:</label>
+            <input type="date" id="date" name="date" value="2023-06-16" min="2023-06-16" max="2023-09-30"><br><br>
+            <label for="Date">Hour:</label>
+            <select id="hour" name="hour">
+            </select><br><br>
+            <input type="submit" id="Submit" value="Submit"><br>
+        </form>
+        <div id="myPlot" style="width:100%;max-width:700px"></div>
+        <br>
+        <div id="myPlot2" style="width:100%;max-width:700px"></div>
+    </div>
+    
+
+<script>
+var parseTime = d3.timeParse("%d-%m-%Y");
+//For converting Dates to strings
+var formatTime = d3.timeFormat("%b %y");
+d3.dsv(',',"CommunityDetails.csv", function(d){
+    return {
+        "CommunityId": parseInt(d["Community ID"]),
+        "CommunityName": d["Community Area"]
+    }
+}).then((data)=>{
+    const numberOfCommunities = data.length
+    var i = 0;
+    var communityElement = document.getElementById("community")
+    data.forEach((community)=>{
+        var option = document.createElement('option')
+        option.value = i+1;
+        option.text = data[i].CommunityName
+        communityElement.appendChild(option)
+        i++;
+    })
+    var HourElement = document.getElementById("hour")
+    for(var i=0;i<24;i++){
+        var option = document.createElement('option')
+        option.value = i;
+        option.text = i
+        HourElement.appendChild(option)
+    }
+})
+var demandData;
+
+d3.dsv(",", "FINAL.csv", function(d) {
+//   var cstTime = new Date(now.getTime() + cstOffset);
+  return {
+    "Hourly_Timestamp": moment.tz(d['Hourly_Timestamp'], 'America/Chicago'), //new Date(d["Hourly_Timestamp"]),
+    "Pickup_Community_Area": parseInt(d["Pickup_Community_Area"]),
+    "Demand": parseFloat(d["pred_demand"]),
+    "Surge_Multiplier": parseFloat(d["surge_multiplier"])
+  }
+}).then(function(data) {
+    demandData = data
+})
+d3.select("#Submit")
+    .on("click", function() {
+        // Prevent the default form submission
+        d3.event.preventDefault();
+        const formId = document.getElementById("form")
+        const hour_of_day = parseInt(formId.elements["hour"].value)
+        const date = formId.elements["date"].value
+        const community_area = parseInt(formId.elements["community"].value)
+        var cstOffset = 6 * 60 * 60 * 1000;
+        
+
+        const timestamp = moment.tz(date, 'America/Chicago').hour(hour_of_day)
+
+        // timestamp.setHours(hour_of_day)
+        const endTimeStamp = moment.tz(date, 'America/Chicago').add(24,'hours')
+        // endTimeStamp.setHours(endTimeStamp.getHours()+24);
+
+        const dataForDemandInNearFuture = demandData.filter((d)=>{
+            return d.Pickup_Community_Area == community_area && d.Hourly_Timestamp>=timestamp && d.Hourly_Timestamp<=endTimeStamp
+        })
+
+        dataForDemandInNearFuture.sort((a,b)=>{
+            return a.Hourly_Timestamp-b.Hourly_Timestamp
+        })
+        const xArray = []
+        const yArray = []
+        dataForDemandInNearFuture.forEach((d)=>{
+            xArray.push(new Date(d.Hourly_Timestamp))
+            yArray.push(d.Demand)
+        })
+        const yMax = Math.max(...yArray)
+
+        // Define Data
+        const plotData = [{
+        x: xArray,
+        y: yArray,
+        mode:"lines"
+        }];
+
+        // Define Layout
+        const layout = {
+        xaxis: {range: [timestamp, endTimeStamp], title: "Time", type:'date'},
+        yaxis: {range: [0, yMax], title: "Demand"},  
+        title: "Demand vs Time"
+        };
+
+        // Display using Plotly
+        Plotly.newPlot("myPlot", plotData, layout);
+
+        dataForDemandInNearFuture.sort((a,b)=>{
+            return a.Hourly_Timestamp-b.Hourly_Timestamp
+        })
+        const yArray2 = []
+        dataForDemandInNearFuture.forEach((d)=>{
+            yArray2.push(d.Surge_Multiplier)
+        })
+        const yMax2 = Math.max(...yArray2)
+        const yMin2 = Math.min(...yArray2)
+
+        // Define Data
+        const plotData2 = [{
+        x: xArray,
+        y: yArray2,
+        mode:"lines"
+        }];
+
+        // Define Layout
+        const layout2 = {
+        xaxis: {range: [timestamp, endTimeStamp], title: "Time"},
+        yaxis: {range: [yMin2-2, yMax2], title: "Surge Multipler"},  
+        title: "Surge Multiplier vs Time",
+        };
+
+        // Display using Plotly
+        Plotly.newPlot("myPlot2", plotData2, layout2);
+    });
+</script>
+
+</body>
+</html>
