@@ -24,6 +24,11 @@ Open your browser and navigate to `http://localhost:8080` to view the dashboard.
 
 Use the slider to select the hour of the day and the date input to select the date for the forecast. The map will update to display the forecast for the selected hour and date.
 
+## Demand and Surge Plots 
+
+Demand and Surge Plots are hosted at GitHub repo: https://github.gatech.edu/breddy38/DemandSurgePredictionPlots.git
+Plots webpage url: https://github.gatech.edu/pages/breddy38/DemandSurgePredictionPlots/
+
 ## Contributing
 
 Contributions are welcome. Please open an issue or submit a pull request.
