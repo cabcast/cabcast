@@ -27,6 +27,7 @@ Use the slider to select the hour of the day and the date input to select the da
 ## Demand and Surge Plots 
 
 Demand and Surge Plots are hosted at GitHub repo: https://github.gatech.edu/breddy38/DemandSurgePredictionPlots.git
+
 Plots webpage url: https://github.gatech.edu/pages/breddy38/DemandSurgePredictionPlots/
 
 ## Contributing
